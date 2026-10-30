@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todo</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #1a1d23;
+    --text-2: #6b7280;
+    --text-3: #9ca3af;
+    --accent: #4f46e5;
+    --accent-soft: #eef2ff;
+    --danger: #ef4444;
+    --border: #e5e7eb;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.06);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115;
+      --card: #171a21;
+      --text: #f2f4f8;
+      --text-2: #9aa1ad;
+      --text-3: #6b7280;
+      --accent: #818cf8;
+      --accent-soft: rgba(129,140,248,.14);
+      --danger: #f87171;
+      --border: #262b35;
+      --shadow: 0 1px 3px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app {
+    width: 100%;
+    max-width: 560px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    animation: rise .35s ease;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  header {
+    padding: 26px 24px 18px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .count {
+    font-size: 13px;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Add form */
+  .add-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 24px 18px;
+  }
+  .add-row input {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: 15px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .add-row input::placeholder { color: var(--text-3); }
+  .add-row input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .add-row button {
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 0 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: filter .15s, transform .05s;
+  }
+  .add-row button:hover { filter: brightness(1.08); }
+  .add-row button:active { transform: scale(.97); }
+  .add-row button:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+
+  /* Filters */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 24px 12px;
+  }
+  .filters { display: flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 10px; }
+  .filters button {
+    border: none;
+    background: transparent;
+    color: var(--text-2);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .filters button:hover { color: var(--text); }
+  .filters button.active {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,.08);
+    font-weight: 600;
+  }
+  .clear-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-3);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 8px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: color .15s;
+  }
+  .clear-btn:hover { color: var(--danger); }
+  .clear-btn[hidden] { display: none; }
+
+  /* List */
+  ul { list-style: none; }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 24px;
+    border-top: 1px solid var(--border);
+    animation: fadein .18s ease;
+  }
+  @keyframes fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .item.removing {
+    animation: fadeout .2s ease forwards;
+  }
+  @keyframes fadeout { to { opacity: 0; transform: translateX(12px); } }
+
+  /* Checkbox */
+  .check {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color .15s, background .15s;
+    background: transparent;
+    padding: 0;
+  }
+  .check:hover { border-color: var(--accent); }
+  .check svg {
+    width: 12px;
+    height: 12px;
+    stroke: #fff;
+    stroke-width: 3;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0;
+    transform: scale(.5);
+    transition: opacity .15s, transform .15s;
+  }
+  .item.done .check { background: var(--accent); border-color: var(--accent); }
+  .item.done .check svg { opacity: 1; transform: scale(1); }
+
+  .label {
+    flex: 1;
+    font-size: 15px;
+    line-height: 1.4;
+    word-break: break-word;
+    transition: color .15s;
+    cursor: default;
+  }
+  .item.done .label { color: var(--text-3); text-decoration: line-through; }
+
+  .edit-input {
+    flex: 1;
+    font: inherit;
+    font-size: 15px;
+    color: var(--text);
+    border: none;
+    outline: none;
+    background: var(--accent-soft);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+
+  .actions { display: flex; gap: 2px; opacity: 0; transition: opacity .15s; }
+  .item:hover .actions, .item:focus-within .actions { opacity: 1; }
+  @media (hover: none) { .actions { opacity: 1; } }
+  .actions button {
+    border: none;
+    background: transparent;
+    color: var(--text-3);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s, color .15s;
+  }
+  .actions button:hover { background: var(--bg); color: var(--text); }
+  .actions .del:hover { color: var(--danger); }
+  .actions svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Empty state */
+  .empty {
+    padding: 44px 24px;
+    text-align: center;
+    color: var(--text-3);
+  }
+  .empty .icon { font-size: 36px; margin-bottom: 10px; opacity: .6; }
+  .empty p { font-size: 14px; }
+  footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-3);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+<div class="app" role="application" aria-label="Todo list">
+  <header>
+    <h1>Todo</h1>
+    <span class="count" id="count"></span>
+  </header>
+
+  <form class="add-row" id="addForm">
+    <input type="text" id="newTodo" placeholder="What needs to be done?"
+           autocomplete="off" aria-label="New todo" maxlength="300">
+    <button type="submit" id="addBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Add
+    </button>
+  </form>
+
+  <div class="toolbar">
+    <div class="filters" role="tablist" aria-label="Filter todos">
+      <button data-filter="all" class="active">All</button>
+      <button data-filter="active">Active</button>
+      <button data-filter="done">Done</button>
+    </div>
+    <button class="clear-btn" id="clearDone">Clear done</button>
+  </div>
+
+  <ul id="list"></ul>
+
+  <div class="empty" id="empty" hidden>
+    <div class="icon">✓</div>
+    <p>Nothing here yet. Add a task above to get started.</p>
+  </div>
+
+  <footer>
+    <span id="footerCount"></span>
+    <span>Double-click a task to edit · data saved locally</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const STORAGE_KEY = "todos.v1";
+  let todos = load();
+  let filter = "all";
+
+  const list      = document.getElementById("list");
+  const form      = document.getElementById("addForm");
+  const input     = document.getElementById("newTodo");
+  const addBtn    = document.getElementById("addBtn");
+  const countEl   = document.getElementById("count");
+  const footer    = document.getElementById("footerCount");
+  const empty     = document.getElementById("empty");
+  const clearBtn  = document.getElementById("clearDone");
+  const filterBtns= document.querySelectorAll(".filters button");
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); }
+
+  const ICONS = {
+    edit: '<svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
+    del:  '<svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>'
+  };
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    todos.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text, done: false });
+    input.value = "";
+    input.focus();
+    save(); render();
+  });
+
+  input.addEventListener("input", function () {
+    addBtn.disabled = input.value.trim() === "";
+  });
+  addBtn.disabled = true;
+
+  filterBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      filter = btn.dataset.filter;
+      filterBtns.forEach(function (b) { b.classList.toggle("active", b === btn); });
+      render();
+    });
+  });
+
+  clearBtn.addEventListener("click", function () {
+    todos = todos.filter(function (t) { return !t.done; });
+    save(); render();
+  });
+
+  function visible() {
+    if (filter === "active") return todos.filter(function (t) { return !t.done; });
+    if (filter === "done")   return todos.filter(function (t) { return t.done; });
+    return todos;
+  }
+
+  function render() {
+    list.innerHTML = "";
+    const items = visible();
+    empty.hidden = items.length > 0;
+
+    items.forEach(function (t) {
+      const li = document.createElement("li");
+      li.className = "item" + (t.done ? " done" : "");
+      li.dataset.id = t.id;
+
+      const check = document.createElement("button");
+      check.className = "check";
+      check.setAttribute("aria-label", t.done ? "Mark as not done" : "Mark as done");
+      check.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>';
+      check.addEventListener("click", function () {
+        t.done = !t.done; save(); render();
+      });
+
+      const label = document.createElement("span");
+      label.className = "label";
+      label.textContent = t.text;
+      label.title = "Double-click to edit";
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const edit = document.createElement("button");
+      edit.setAttribute("aria-label", "Edit");
+      edit.innerHTML = ICONS.edit;
+      edit.addEventListener("click", function () { startEdit(li, t, label); });
+
+      const del = document.createElement("button");
+      del.className = "del";
+      del.setAttribute("aria-label", "Delete");
+      del.innerHTML = ICONS.del;
+      del.addEventListener("click", function () {
+        li.classList.add("removing");
+        setTimeout(function () {
+          todos = todos.filter(function (x) { return x.id !== t.id; });
+          save(); render();
+        }, 180);
+      });
+
+      actions.append(edit, del);
+      li.append(check, label, actions);
+      label.addEventListener("dblclick", function () { startEdit(li, t, label); });
+      list.appendChild(li);
+    });
+
+    const total = todos.length;
+    const done = todos.filter(function (t) { return t.done; }).length;
+    countEl.textContent = total === 0 ? "" : done + " / " + total + " done";
+    footer.textContent = total + " task" + (total === 1 ? "" : "s") + " · " + done + " completed";
+    clearBtn.hidden = done === 0;
+  }
+
+  function startEdit(li, todo, label) {
+    if (li.contains(document.activeElement) && li.querySelector(".edit-input")) return;
+    const old = label.textContent;
+    label.replaceWith(
+      Object.assign(document.createElement("input"),
+        { className: "edit-input", value: old })
+    );
+    const inp = li.querySelector(".edit-input");
+    inp.focus();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+
+    let committed = false;
+    function commit(saveIt) {
+      if (committed) return; committed = true;
+      const v = inp.value.trim();
+      if (saveIt && v && v !== old) { todo.text = v; save(); }
+      render();
+    }
+    inp.addEventListener("blur", function () { commit(true); });
+    inp.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { commit(true); }
+      if (e.key === "Escape") { commit(false); }
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
